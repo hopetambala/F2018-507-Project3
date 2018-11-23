@@ -1,4 +1,4 @@
-import sqlite3 as sqlite
+import sqlite3 as sqlite3
 from sqlite3 import Error
 import csv
 import json
@@ -19,8 +19,8 @@ def createDB():
 
     """ create a database connection to a SQLite database """
     try:
-        conn = sqlite.connect(DBNAME)
-        print(sqlite.version)
+        conn = sqlite3.connect(DBNAME)
+        print(sqlite3.version)
     except Error as e:
         print(e)
 
@@ -47,17 +47,19 @@ def createDB():
     '''
 
     statement = '''
-    CREATE TABLE "Bars" ( 
+    CREATE TABLE `Bars`( 
         `Id` INTEGER PRIMARY KEY AUTOINCREMENT , 
         `Company` TEXT, 
         `SpecificBeanBarName` TEXT, 
         `REF` TEXT, 
         `ReviewDate` TEXT, 
         `CocoaPercent` REAL, 
+		'CompanyLocation' TEXT,
         `CompanyLocationId` INTEGER, 
         `Rating` REAL, 
         `BeanType` TEXT, 
-        BroadBeanOriginId INTEGER, 
+		BroadBeanOrigin TEXT, 
+		BroadBeanOriginId INTEGER,
         FOREIGN KEY(BroadBeanOriginId) REFERENCES Countries(Id),
         FOREIGN KEY(CompanyLocationId) REFERENCES Countries(Id) 
         )
@@ -86,36 +88,107 @@ def createDB():
 def populate_db():
 
 	# Connect to big10 database
-	conn = sqlite.connect(DBNAME)
+	conn = sqlite3.connect(DBNAME)
 	cur = conn.cursor()
+
+	#[20 points] Read all data from JSON into Countries table
+	with open('countries.json') as jsonFile:
+		data = json.load(jsonFile)
+
+		for x in data:
+			insertion = (None, x['alpha2Code'],x['alpha3Code'], x['name'], x['region'], x['subregion'], x['population'],x['area'])
+			statement = 'INSERT INTO "Countries" '
+			statement += 'VALUES (?, ?, ?, ?, ?, ?,?,?)'
+			cur.execute(statement, insertion)
 
 	#[20 points] Read all data from CSV into Bars table
 	with open(BARSCSV) as csvDataFile:
 		csvReader = csv.reader(csvDataFile)
 		next(csvReader, None)  # skip the headers
+
+		country_ids = cur.execute('SELECT Id, EnglishName from Countries').fetchall()
+		'''
+		for x in country_ids:
+			print(x[1])
+		'''
+		
 		for row in csvReader:
-				insertion = (None, row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8])
-				statement = 'INSERT INTO "Bars" '
-				statement += 'VALUES (?, ?, ?, ?, ?, ?,?,?,?,?)'
-				cur.execute(statement, insertion)
-	
-	#[20 points] Read all data from JSON into Countries table
-	with open('countries.json') as jsonFile:
-		data = json.load(jsonFile)
-		for x in data:
-			#print(x['name'])
-			insertion = (None, x['alpha2Code'],x['alpha3Code'], x['name'], x['region'], x['subregion'], x['population'],x['area'])
-			statement = 'INSERT INTO "Countries" '
-			statement += 'VALUES (?, ?, ?, ?, ?, ?,?,?)'
+			for x in country_ids:
+				if (row[5] == x[1]):
+					foreignid_company = x[0]
+				if (row[8] == x[1]):
+					foreignid_beans = x[0]
+
+			insertion = (None, row[0], row[1], row[2], row[3], row[4], row[5], foreignid_company, row[6], row[7],row[8],foreignid_beans )
+			statement = 'INSERT INTO "Bars" '
+			statement += 'VALUES (?, ?, ?, ?, ?, ?,?,?,?,?,?,?)'
 			cur.execute(statement, insertion)
+	
 	# Close connection
 	conn.commit()
 	conn.close()
 
 # Part 2: Implement logic to process user commands
+def argument_helper():
+	args = argv[1:]
+	result = ''
+
+	for arg in args:
+		result += " " + arg
+	return result
+
 def process_command(command):
-	if command.split(' ', 1)[0] == 'bar':
-		print('bar')
+	splitted = command.split()
+
+	conn = sqlite3.connect(DBNAME)
+	cur = conn.cursor()
+
+	#Bars
+	if 'bars' in splitted:
+		statement = '''SELECT Bars.SpecificBeanBarName, Bars.Company, Bars.CompanyLocation, Bars.Rating, Bars.CocoaPercent, Bars.BroadBeanOrigin\nFROM Bars\nJOIN Countries ON Bars.CompanyLocationId=Countries.Id'''
+		#Parameter 1
+		params1 = ["sellcountry", "sourcecountry", "sellregion", "sourceregion"]
+		if any(c in command for c in params1):
+			for x in splitted:
+				for y in params1:
+					if x.startswith(y):
+						if'sellcountry=' in x:
+							#print(x[12:])
+							statement += '\nWHERE Countries.Alpha2 = "%s"' % (x[12:])
+						elif 'sourcecountry=' in x:
+							#print(x[14:])
+							statement += '\nWHERE Countries.Alpha2 = "%s"' % (x[14:])
+						elif 'sellregion=' in x:
+							#print(x[11:])
+							statement += '\nWHERE Countries.Region = "%s"' % (x[11:])
+						elif 'sourceregion=' in x:
+							#print(x[13:])
+							statement += '\nWHERE Countries.Region = "%s"' % (x[13:])
+						else:
+							continue
+					else:
+						continue
+		#Parameter 2
+		if 'ratings' in splitted:
+			statement += '\nORDER BY Bars.Rating DESC'
+		elif 'cocoa' in splitted:
+			statement += '\nORDER BY Bars.CocoaPercent DESC'
+		else:
+			statement += '\nORDER BY Bars.Rating DESC'
+		
+		#Parameter 3
+		if 'top' in command:
+			print('top')
+		elif 'bottom' in command:
+			print('bottom')
+		else:
+			statement += '\nLIMIT 10'
+		
+		print(statement)
+		cur.execute(statement)
+		result = cur.fetchall()
+		conn.close()
+		return(result)	
 
 	if command.split(' ', 1)[0]== 'companies':
 		print('companies')
@@ -147,6 +220,13 @@ def interactive_prompt():
 if __name__=="__main__":
 	createDB()
 	populate_db()
-	command = argv[1]
-	process_command(str(command))
+
+	result = argument_helper()
+
+	
+	executed_command = process_command(result)
+	
+	for x in executed_command:
+		print(x)
+	
     #interactive_prompt()
