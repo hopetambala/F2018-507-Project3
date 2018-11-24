@@ -118,7 +118,8 @@ def populate_db():
 					foreignid_company = x[0]
 				if (row[8] == x[1]):
 					foreignid_beans = x[0]
-
+			cocoa_percent = str(row[4].replace('%',''))
+			row[4] = cocoa_percent
 			insertion = (None, row[0], row[1], row[2], row[3], row[4], row[5], foreignid_company, row[6], row[7],row[8],foreignid_beans )
 			statement = 'INSERT INTO "Bars" '
 			statement += 'VALUES (?, ?, ?, ?, ?, ?,?,?,?,?,?,?)'
@@ -168,6 +169,7 @@ def process_command(command):
 							continue
 					else:
 						continue
+		
 		#Parameter 2
 		if 'ratings' in splitted:
 			statement += '\nORDER BY Bars.Rating'
@@ -202,13 +204,72 @@ def process_command(command):
 		conn.close()
 		return(result)	
 
-	if command.split(' ', 1)[0]== 'companies':
-		print('companies')
-	
-	if command.split(' ', 1)[0]== 'countries':
+	if 'companies' in splitted:
+		statement = '''SELECT Bars.Company,Bars.CompanyLocation, COUNT(*)\nFROM Bars\nJOIN Countries ON Bars.CompanyLocationId=Countries.Id'''
+		
+		#Parameter 1
+		params1 = ["country", "region"]
+		if any(c in command for c in params1):
+			for x in splitted:
+				for y in params1:
+					if x.startswith(y):
+						if 'country=' in x:
+							statement += '\nWHERE Countries.Alpha2 = "%s"' % (x[8:])
+						elif 'region=' in x:
+							statement += '\nWHERE Countries.Region = "%s"' % (x[7:])
+						else:
+							continue
+					else:
+						continue
+
+		
+		statement += '\nGROUP By Company\nHAVING COUNT(*) > 4'
+		
+		#Parameter 2
+		params2 = ["ratings", "cocoa", "bars_sold"]
+		if any(c in command for c in params2):
+			for x in splitted:
+				for y in params2:
+					if x.startswith(y):
+						if 'ratings' in x:
+							statement += '\nORDER BY Bars.Rating'
+						elif 'cocoa' in x:
+							statement += '\nORDER BY Bars.CocoaPercent'
+						elif 'bars_sold' in x:
+							statement += '\nORDER BY Count(*)'
+						else:
+							continue
+					else:
+						continue
+		#Parameter 3
+		params3 = ["top", "bottom"]
+		if any(c in command for c in params3):
+			for x in splitted:
+				for y in params3:
+					if x.startswith(y):
+						if 'top=' in x:
+							#print(x[4:])
+							statement += ' DESC \nLIMIT "%s"' % (x[4:])
+						elif 'bottom=' in x:
+							#print(x[7:])
+							statement += '\nLIMIT "%s"' % (x[7:])
+						else:
+							statement += ' DESC \nLIMIT 10'
+							#continue
+					else:
+						continue
+		else:
+			statement += '\nLIMIT 10'
+
+		print(statement)
+		cur.execute(statement)
+		result = cur.fetchall()
+		conn.close()
+		return(result)
+	if 'countries' in splitted:
 		print('countries')
 
-	if command.split(' ', 1)[0]== 'regions':
+	if 'regions' in splitted:
 		print('regions')
 	return []
 
