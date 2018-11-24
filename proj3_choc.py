@@ -170,17 +170,29 @@ def process_command(command):
 						continue
 		#Parameter 2
 		if 'ratings' in splitted:
-			statement += '\nORDER BY Bars.Rating DESC'
+			statement += '\nORDER BY Bars.Rating'
 		elif 'cocoa' in splitted:
-			statement += '\nORDER BY Bars.CocoaPercent DESC'
+			statement += '\nORDER BY Bars.CocoaPercent'
 		else:
-			statement += '\nORDER BY Bars.Rating DESC'
+			statement += '\nORDER BY Bars.Rating'
 		
 		#Parameter 3
-		if 'top' in command:
-			print('top')
-		elif 'bottom' in command:
-			print('bottom')
+		params3 = ["top", "bottom"]
+		if any(c in command for c in params3):
+			for x in splitted:
+				for y in params3:
+					if x.startswith(y):
+						if 'top=' in x:
+							#print(x[4:])
+							statement += ' DESC \nLIMIT "%s"' % (x[4:])
+						elif 'bottom=' in x:
+							#print(x[7:])
+							statement += '\nLIMIT "%s"' % (x[7:])
+						else:
+							statement += ' DESC \nLIMIT 10'
+							#continue
+					else:
+						continue
 		else:
 			statement += '\nLIMIT 10'
 		
