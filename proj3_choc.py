@@ -205,8 +205,7 @@ def process_command(command):
 		return(result)	
 
 	if 'companies' in splitted:
-		count_factor = ''
-		statement = '''SELECT Bars.Company,Bars.CompanyLocation, COUNT(*)\nFROM Bars\nJOIN Countries ON Bars.CompanyLocationId=Countries.Id'''
+		statement = 'SELECT Bars.Company,Bars.CompanyLocation, COUNT(*)\nFROM Bars\nJOIN Countries ON Bars.CompanyLocationId=Countries.Id'''
 		
 		#Parameter 1
 		params1 = ["country", "region"]
@@ -233,8 +232,10 @@ def process_command(command):
 				for y in params2:
 					if x.startswith(y):
 						if 'ratings' in x:
+							statement = statement.replace('COUNT(*)', 'AVG(Bars.Rating)',1)
 							statement += '\nORDER BY AVG(Bars.Rating)'
 						elif 'cocoa' in x:
+							statement = statement.replace('COUNT(*)', 'AVG(Bars.CocoaPercent)',1)
 							statement += '\nORDER BY AVG(Bars.CocoaPercent)'
 						elif 'bars_sold' in x:
 							statement += '\nORDER BY Count(*)'
