@@ -204,6 +204,7 @@ def process_command(command):
 		conn.close()
 		return(result)	
 
+	#Companies
 	if 'companies' in splitted:
 		statement = 'SELECT Bars.Company,Bars.CompanyLocation, COUNT(*)\nFROM Bars\nJOIN Countries ON Bars.CompanyLocationId=Countries.Id'''
 		
@@ -268,9 +269,102 @@ def process_command(command):
 		result = cur.fetchall()
 		conn.close()
 		return(result)
+	
+	#Countries
 	if 'countries' in splitted:
-		print('countries')
+		statement = 'SELECT Bars.CompanyLocation, Countries.Region, COUNT(*)\nFROM Bars\nJOIN Countries ON Bars.CompanyLocationId=Countries.Id'''
+		
+		#Parameter 1
+		params1 = ["region"]
+		if any(c in command for c in params1):
+			for x in splitted:
+				for y in params1:
+					if x.startswith(y):
+						if 'region=' in x:
+							statement += '\nWHERE Countries.Region = "%s"' % (x[7:])
+						else:
+							continue
+					else:
+						continue
+		
+		#Parameter 2
+		params2 = ["sellers", "sources"]
+		if any(c in command for c in params2):
+			for x in splitted:
+				for y in params2:
+					if x.startswith(y):
+						if'sellers' in x:
+							statement = statement.replace('Bars.CompanyLocation', 'Bars.CompanyLocation',1)
+						elif 'sources' in x:
+							statement = statement.replace('ON Bars.CompanyLocationId=Countries.Id', 'ON Bars.BroadBeanOrigin=Countries.EnglishName',1)
+							statement = statement.replace('Bars.CompanyLocation', 'Bars.BroadBeanOrigin',1)
+						else:
+							continue
+					else:
+						continue
+			
+		statement += '\nGROUP By CompanyLocation\nHAVING COUNT(*) > 4'
+		if any(c in command for c in params2):
+			for x in splitted:
+				for y in params2:
+					if x.startswith(y):
+						if'sellers' in x:
+							statement = statement.replace('GROUP By CompanyLocation', 'GROUP By CompanyLocation',1)
+						elif 'sources' in x:
+							statement = statement.replace('GROUP By CompanyLocation', 'GROUP By BroadBeanOrigin',1)
+						else:
+							continue
+					else:
+						continue
 
+		#Parameter 3
+		params3 = ["ratings", "cocoa", "bars_sold"]
+		if any(c in command for c in params3):
+			for x in splitted:
+				for y in params3:
+					if x.startswith(y):
+						if 'ratings' in x:
+							statement = statement.replace('COUNT(*)', 'AVG(Bars.Rating)',1)
+							statement += '\nORDER BY AVG(Bars.Rating)'
+						elif 'cocoa' in x:
+							statement = statement.replace('COUNT(*)', 'AVG(Bars.CocoaPercent)',1)
+							statement += '\nORDER BY AVG(Bars.CocoaPercent)'
+						elif 'bars_sold' in x:
+							statement += '\nORDER BY Count(*)'
+						else:
+							continue
+					else:
+						continue
+		else:
+			statement = statement.replace('COUNT(*)', 'AVG(Bars.Rating)',1)
+			statement += '\nORDER BY AVG(Bars.Rating)'
+		
+		#Parameter 4
+		params4 = ["top", "bottom"]
+		if any(c in command for c in params4):
+			for x in splitted:
+				for y in params4:
+					if x.startswith(y):
+						if 'top=' in x:
+							#print(x[4:])
+							statement += ' DESC \nLIMIT "%s"' % (x[4:])
+						elif 'bottom=' in x:
+							#print(x[7:])
+							statement += ' ASC \nLIMIT "%s"' % (x[7:])
+						else:
+							statement += ' DESC \nLIMIT 10'
+							#continue
+					else:
+						continue
+		else:
+			statement += '\nLIMIT 10'
+		print(statement)
+		cur.execute(statement)
+		result = cur.fetchall()
+		conn.close()
+		return(result)
+	
+	#Regions
 	if 'regions' in splitted:
 		print('regions')
 	return []
