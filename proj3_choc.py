@@ -3,6 +3,7 @@ from sqlite3 import Error
 import csv
 import json
 from sys import argv
+import pprint
 
 # proj3_choc.py
 # You can change anything in this file you want as long as you pass the tests
@@ -198,7 +199,6 @@ def process_command(command):
 		else:
 			statement += '\nLIMIT 10'
 		
-		print(statement)
 		cur.execute(statement)
 		result = cur.fetchall()
 		conn.close()
@@ -264,7 +264,6 @@ def process_command(command):
 		else:
 			statement += '\nLIMIT 10'
 
-		print(statement)
 		cur.execute(statement)
 		result = cur.fetchall()
 		conn.close()
@@ -358,7 +357,7 @@ def process_command(command):
 						continue
 		else:
 			statement += '\nLIMIT 10'
-		print(statement)
+
 		cur.execute(statement)
 		result = cur.fetchall()
 		conn.close()
@@ -427,7 +426,6 @@ def process_command(command):
 		else:
 			statement += '\nLIMIT 10'
 
-		print(statement)
 		cur.execute(statement)
 		result = cur.fetchall()
 		conn.close()
@@ -440,26 +438,38 @@ def load_help_text():
 
 # Part 3: Implement interactive prompt. We've started for you!
 def interactive_prompt():
-    help_text = load_help_text()
-    response = ''
-    while response != 'exit':
-        response = input('Enter a command: ')
+	help_text = load_help_text()
+	response = ''
+	while response != 'exit':
+		response = input('Enter a command: ')
 
-        if response == 'help':
-            print(help_text)
-            continue
+		if response == 'exit':
+			print('Goodbye!')
+			exit()
+
+		executed_command = process_command(response)
+		
+		try:
+			for x in executed_command:
+				print(x)
+		except TypeError:
+			print('\nCommand not recognized\nTry Again\n')
+
+		if response == 'help':
+			print(help_text)
+			continue
+		
 
 # Make sure nothing runs or prints out when this file is run as a module
 if __name__=="__main__":
 	createDB()
 	populate_db()
 
+	'''
 	result = argument_helper()
-
 	
 	executed_command = process_command(result)
+	'''
 	
-	for x in executed_command:
-		print(x)
 	
-    #interactive_prompt()
+	interactive_prompt()
