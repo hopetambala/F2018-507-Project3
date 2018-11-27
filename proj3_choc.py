@@ -21,7 +21,7 @@ def createDB():
     """ create a database connection to a SQLite database """
     try:
         conn = sqlite3.connect(DBNAME)
-        print(sqlite3.version)
+        #print(sqlite3.version)
     except Error as e:
         print(e)
 
@@ -440,6 +440,8 @@ def load_help_text():
 def interactive_prompt():
 	help_text = load_help_text()
 	response = ''
+
+	pp = pprint.PrettyPrinter(indent=3)
 	while response != 'exit':
 		response = input('Enter a command: ')
 
@@ -451,9 +453,10 @@ def interactive_prompt():
 		
 		try:
 			for x in executed_command:
-				print(x)
+				#pp.pprint(x)
+				print(*x, sep=' ')
 		except TypeError:
-			print('\nCommand not recognized\nTry Again\n')
+			print('\nCommand not recognized: '+ response +'\nTry Again\n')
 
 		if response == 'help':
 			print(help_text)
